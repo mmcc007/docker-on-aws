@@ -16,10 +16,10 @@ resource "aws_instance" "docker_ec2" {
 
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y docker
-              service docker start
-              usermod -a -G docker ec2-user
+              apt-get update -y
+              apt-get install -y docker.io
+              systemctl start docker
+              usermod -a -G docker ubuntu
               
               # Run the Docker image initially
               docker run -d \
@@ -59,6 +59,24 @@ resource "aws_instance" "docker_ec2" {
   tags = {
     Name = "docker-ec2"
   }
+
+  provisioner "local-exec" {
+    command = "echo EC2 Instance Public IP: ${self.public_ip}"
+  }
+
+  provisioner "local-exec" {
+    command = "echo EC2 Instance Public DNS: ${self.public_dns}"
+  }
+}
+
+output "ec2_public_ip" {
+  value = aws_instance.docker_ec2.public_ip
+  description = "The public IP address of the EC2 instance."
+}
+
+output "ec2_public_dns" {
+  value = aws_instance.docker_ec2.public_dns
+  description = "The public DNS of the EC2 instance."
 }
 
 resource "aws_security_group" "docker_ec2_sg" {
