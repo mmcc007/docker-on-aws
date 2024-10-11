@@ -21,13 +21,6 @@ resource "aws_instance" "docker_ec2" {
               systemctl start docker
               usermod -a -G docker ubuntu
               
-              # Run the Docker image initially
-              docker run -d \
-                -e GRADIO_SERVER_NAME=0.0.0.0 \
-                -e GRADIO_SERVER_PORT=7860 \
-                -p 7860:7860 -it --rm \
-                ghcr.io/cinnamon/kotaemon:main-full
-
               # Install upgrade script
               cat <<'SCRIPT' > /usr/local/bin/upgrade_docker_image.sh
               #!/bin/bash
@@ -37,23 +30,26 @@ resource "aws_instance" "docker_ec2" {
               fi
               
               # Check if a newer image exists or if force option is provided
-              docker pull ghcr.io/cinnamon/kotaemon:main-full
-              if [[ $(docker images -q ghcr.io/cinnamon/kotaemon:main-full) != $(docker ps --filter ancestor=ghcr.io/cinnamon/kotaemon:main-full --format "{{.Image}}") || "$FORCE" == true ]]; then
+              docker pull ghcr.io/cinnamon/kotaemon:main-lite
+              if [[ $(docker images -q ghcr.io/cinnamon/kotaemon:main-lite) != $(docker ps --filter ancestor=ghcr.io/cinnamon/kotaemon:main-lite --format "{{.Image}}") || "$FORCE" == true ]]; then
                 echo "Stopping existing container..."
-                docker stop $(docker ps -q --filter ancestor=ghcr.io/cinnamon/kotaemon:main-full)
+                docker stop $(docker ps -q --filter ancestor=ghcr.io/cinnamon/kotaemon:main-lite)
                 
                 echo "Starting new container..."
                 docker run -d \
                   -e GRADIO_SERVER_NAME=0.0.0.0 \
                   -e GRADIO_SERVER_PORT=7860 \
                   -p 7860:7860 -it --rm \
-                  ghcr.io/cinnamon/kotaemon:main-full
+                  ghcr.io/cinnamon/kotaemon:main-lite
               else
                 echo "No new image available or FORCE not provided."
               fi
               SCRIPT
 
               chmod +x /usr/local/bin/upgrade_docker_image.sh
+
+              # Run the upgrade script to pull the latest Docker image
+              /usr/local/bin/upgrade_docker_image.sh
               EOF
 
   tags = {
